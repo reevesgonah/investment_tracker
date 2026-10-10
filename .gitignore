@@ -1,0 +1,6 @@
+# Exported data - keep personal financial records out of the repo
+*.csv
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Investment Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ee; --bg-deep:#13261d; --card:#ffffff; --card-sunken:#f1efe6;
+  --text:#16201a; --sub:#5e6b61; --hairline:#dcd6c6;
+  --forest:#1e4d37; --forest-light:#2f6f4e; --gold:#a6762c;
+  --danger:#a8432b; --ok:#2f6f4e;
+  --serif:'Source Serif 4', Georgia, serif;
+  --sans:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root[data-theme="dark"]{
+  --bg:#0f1611; --card:#17201a; --card-sunken:#111a14;
+  --text:#eef0ea; --sub:#93a194; --hairline:#263229;
+  --forest:#5fa985; --forest-light:#5fa985; --gold:#c99a4f;
+  --danger:#d98468; --ok:#5fa985;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans);
+  padding:0 0 calc(48px + env(safe-area-inset-bottom,0px)) 0;
+  max-width:560px; margin-left:auto; margin-right:auto;
+}
+.hero{
+  background:var(--forest); color:#f3f1e7;
+  padding:calc(22px + env(safe-area-inset-top,0px)) 20px 26px 20px;
+  border-radius:0 0 22px 22px;
+  position:relative;
+}
+.hero-top{display:flex; justify-content:space-between; align-items:flex-start;}
+.hero-label{font-family:var(--sans); font-size:13px; color:#cfe0d4; margin:0 0 6px 0;}
+.theme-toggle{
+  background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); color:#f3f1e7;
+  border-radius:20px; padding:5px 11px; font-size:12px; cursor:pointer;
+}
+.hero-total{font-family:var(--serif); font-size:40px; font-weight:600; line-height:1.1; margin:2px 0 10px 0;}
+.hero-sub{display:flex; gap:16px; font-size:13px; color:#cfe0d4;}
+.hero-sub b{color:#f3f1e7; font-weight:600;}
+
+.content{padding:18px 18px 0 18px;}
+
+.bracket-tabs{display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; padding-bottom:2px; -ms-overflow-style:none; scrollbar-width:none;}
+.bracket-tabs::-webkit-scrollbar{display:none;}
+.bracket-tab{flex:0 0 auto; padding:8px 14px; border-radius:999px; background:var(--card); border:1px solid var(--hairline); cursor:pointer; font-weight:500; font-size:13px; color:var(--sub); white-space:nowrap;}
+.bracket-tab.active{color:#fff; background:var(--forest-light); border-color:var(--forest-light);}
+
+.card{background:var(--card); border:1px solid var(--hairline); border-radius:16px; padding:16px; margin-bottom:14px;}
+.card-title{font-size:12px; color:var(--sub); margin-bottom:10px;}
+
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 18px;}
+.stat .label{font-size:12px; color:var(--sub); margin-bottom:2px;}
+.stat .value{font-family:var(--serif); font-size:20px; font-weight:600;}
+.value.pos{color:var(--ok);}
+.value.neg{color:var(--danger);}
+
+form.entry{display:flex; flex-direction:column; gap:10px; margin-top:2px;}
+select,input,button{
+  font-size:16px; padding:11px 13px; border-radius:10px; border:1px solid var(--hairline);
+  background:var(--card-sunken); color:var(--text); width:100%; font-family:var(--sans);
+}
+input::placeholder{color:var(--sub);}
+button{background:var(--forest); color:#fff; border:1px solid var(--forest); font-weight:600; cursor:pointer;}
+button.secondary{background:transparent; color:var(--forest-light); border:1px solid var(--forest-light);}
+:root[data-theme="dark"] button.secondary{color:var(--forest-light); border-color:var(--forest-light);}
+.row2{display:flex; gap:10px;}
+.row2>*{flex:1;}
+.row3{display:flex; gap:8px;}
+.row3>*{flex:1;}
+
+.entry-list{max-height:280px; overflow-y:auto; margin-top:4px;}
+.entry-item{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--hairline); font-size:14px;}
+.entry-item:last-child{border-bottom:none;}
+.entry-meta{color:var(--sub); font-size:12px;}
+.entry-amount{font-family:var(--serif); font-weight:600;}
+.del{color:var(--danger); background:none; border:none; width:auto; padding:4px 8px; font-size:18px;}
+.empty{color:var(--sub); text-align:center; padding:18px 0; font-size:14px;}
+.hint{font-size:12px; color:var(--sub); margin-top:6px;}
+.footer-actions{display:flex; gap:10px;}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-top">
+    <p class="hero-label">Portfolio</p>
+    <button class="theme-toggle" id="themeToggle">Dark mode</button>
+  </div>
+  <div class="hero-total" id="heroTotal">KES 0</div>
+  <div class="hero-sub">
+    <span>Invested <b id="heroInvested">KES 0</b></span>
+    <span>Gain <b id="heroGain">KES 0</b></span>
+  </div>
+</div>
+
+<div class="content">
+<div class="bracket-tabs" id="bracketTabs"></div>
+
+<div class="card" id="statsCard"></div>
+
+<div class="card" id="currentValueCard">
+  <div class="card-title">Current value of this bracket — check your account/app</div>
+  <div class="row2">
+    <input id="currentValueInput" type="number" inputmode="decimal" placeholder="Current value (KES)">
+    <button id="saveValueBtn" class="secondary">Save</button>
+  </div>
+  <div class="hint" id="valueDateHint"></div>
+</div>
+
+<div class="card">
+  <form class="entry" id="entryForm"></form>
+</div>
+
+<div class="card">
+  <div class="entry-list" id="entryList"></div>
+</div>
+
+<div class="card footer-actions">
+  <button class="secondary" id="exportBtn">Export CSV</button>
+  <button class="secondary" id="copyBtn">Copy CSV</button>
+</div>
+</div>
+
+<script>
+function cid(){ return 'e' + Math.random().toString(36).slice(2,9); }
+function fmt(n){ return 'KES ' + Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0}); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+const STORAGE_KEY = 'investment-tracker-data';
+
+let state = {
+  activeBracket: 'mmf',
+  brackets: {
+    mmf: { name: 'Emergency Fund (MMF)', type: 'fund', currentValue: null, valueDate: null, entries: [] },
+    bond: { name: 'Mid-term (Bond Fund)', type: 'fund', currentValue: null, valueDate: null, entries: [] },
+    nse: { name: 'Kenyan Stocks (NSE/CDS)', type: 'stock', currentValue: null, valueDate: null, entries: [] },
+    sp500: { name: 'Global (S&P 500 / Ndovu)', type: 'fund', currentValue: null, valueDate: null, entries: [] }
+  }
+};
+
+function init(){
+  try{
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if(saved){
+      const parsed = JSON.parse(saved);
+      if(parsed && parsed.brackets) state = parsed;
+    }
+  }catch(e){}
+  renderTabs();
+  renderAll();
+}
+
+function persist(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function renderTabs(){
+  const box = document.getElementById('bracketTabs');
+  box.innerHTML = Object.entries(state.brackets).map(([key,b])=>
+    `<div class="bracket-tab ${key===state.activeBracket?'active':''}" data-key="${key}">${escapeHtml(b.name)}</div>`
+  ).join('');
+  box.querySelectorAll('.bracket-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      state.activeBracket = tab.dataset.key;
+      renderTabs(); renderAll();
+    });
+  });
+}
+
+// XIRR via bisection on NPV
+function xirr(cashflows){
+  // cashflows: [{date: Date, amount: number}], amount negative=outflow, positive=inflow
+  if(cashflows.length < 2) return null;
+  const d0 = cashflows[0].date;
+  function npv(rate){
+    return cashflows.reduce((sum,cf)=>{
+      const years = (cf.date - d0) / (365*24*3600*1000);
+      return sum + cf.amount / Math.pow(1+rate, years);
+    },0);
+  }
+  let lo = -0.9999, hi = 10;
+  let fLo = npv(lo), fHi = npv(hi);
+  if(isNaN(fLo) || isNaN(fHi) || fLo*fHi > 0) return null;
+  for(let i=0;i<100;i++){
+    const mid = (lo+hi)/2;
+    const fMid = npv(mid);
+    if(Math.abs(fMid) < 1e-4) return mid;
+    if(fLo*fMid < 0){ hi = mid; fHi = fMid; } else { lo = mid; fLo = fMid; }
+  }
+  return (lo+hi)/2;
+}
+
+function bracketCashflows(b){
+  const flows = b.entries.map(e=>({ date: new Date(e.date), amount: -Number(e.amount) }));
+  if(b.currentValue != null && b.valueDate){
+    flows.push({ date: new Date(b.valueDate), amount: Number(b.currentValue) });
+  }
+  flows.sort((a,c)=>a.date-c.date);
+  return flows;
+}
+
+function renderAll(){
+  const b = state.brackets[state.activeBracket];
+  renderStats(b);
+  renderValueCard(b);
+  renderForm(b);
+  renderEntries(b);
+  renderHero();
+}
+
+function renderHero(){
+  let totalInvested = 0, totalValue = 0, anyValue = false;
+  Object.values(state.brackets).forEach(b=>{
+    const invested = b.entries.reduce((s,e)=>s+Number(e.amount),0);
+    totalInvested += invested;
+    if(b.currentValue!=null){ totalValue += Number(b.currentValue); anyValue = true; }
+    else{ totalValue += invested; }
+  });
+  document.getElementById('heroTotal').textContent = fmt(totalValue);
+  document.getElementById('heroInvested').textContent = fmt(totalInvested);
+  document.getElementById('heroGain').textContent = anyValue ? fmt(totalValue - totalInvested) : '—';
+}
+
+function initTheme(){
+  const saved = localStorage.getItem('investment-tracker-theme');
+  if(saved === 'dark'){ document.documentElement.setAttribute('data-theme','dark'); }
+  updateThemeBtn();
+}
+function updateThemeBtn(){
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('themeToggle').textContent = isDark ? 'Light mode' : 'Dark mode';
+}
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if(isDark){ document.documentElement.removeAttribute('data-theme'); localStorage.setItem('investment-tracker-theme','light'); }
+  else{ document.documentElement.setAttribute('data-theme','dark'); localStorage.setItem('investment-tracker-theme','dark'); }
+  updateThemeBtn();
+});
+initTheme();
+
+function renderStats(b){
+  const totalInvested = b.entries.reduce((s,e)=>s+Number(e.amount),0);
+  const currentValue = b.currentValue != null ? Number(b.currentValue) : null;
+  const gain = currentValue != null ? currentValue - totalInvested : null;
+  const flows = bracketCashflows(b);
+  const rate = currentValue != null ? xirr(flows) : null;
+
+  let avgCostLine = '';
+  if(b.type==='stock'){
+    const totalShares = b.entries.reduce((s,e)=>s+Number(e.shares||0),0);
+    const avgCost = totalShares>0 ? totalInvested/totalShares : null;
+    avgCostLine = `<div class="stat"><div class="label">Avg cost/share</div><div class="value">${avgCost?fmt(avgCost):'—'}</div></div>`;
+  }
+
+  document.getElementById('statsCard').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Total invested</div><div class="value">${fmt(totalInvested)}</div></div>
+      <div class="stat"><div class="label">Current value</div><div class="value">${currentValue!=null?fmt(currentValue):'—'}</div></div>
+      <div class="stat"><div class="label">Gain / loss</div><div class="value ${gain>0?'pos':gain<0?'neg':''}">${gain!=null?fmt(gain):'—'}</div></div>
+      <div class="stat"><div class="label">XIRR (annualized)</div><div class="value ${rate>0?'pos':rate<0?'neg':''}">${rate!=null?(rate*100).toFixed(1)+'%':'— (add current value)'}</div></div>
+      ${avgCostLine}
+    </div>`;
+}
+
+function renderValueCard(b){
+  document.getElementById('currentValueInput').value = b.currentValue!=null ? b.currentValue : '';
+  document.getElementById('valueDateHint').textContent = b.valueDate ? 'Last updated: '+b.valueDate : 'Not set yet — add it to see XIRR and gain. Save with the box empty to clear it.';
+}
+
+document.getElementById('saveValueBtn').addEventListener('click', ()=>{
+  const b = state.brackets[state.activeBracket];
+  const val = document.getElementById('currentValueInput').value;
+  if(val===''){
+    b.currentValue = null;
+    b.valueDate = null;
+  }else{
+    b.currentValue = Number(val);
+    b.valueDate = new Date().toISOString().slice(0,10);
+  }
+  persist(); renderAll();
+});
+
+function renderForm(b){
+  const form = document.getElementById('entryForm');
+  if(b.type==='stock'){
+    form.innerHTML = `
+      <input id="f_company" type="text" placeholder="Company / ticker (e.g. Safaricom)" required>
+      <div class="row3">
+        <input id="f_date" type="date" required>
+        <input id="f_shares" type="number" step="any" placeholder="Shares bought" required>
+        <input id="f_price" type="number" step="any" placeholder="Price/share" required>
+      </div>
+      <button type="submit">Add purchase</button>`;
+  }else{
+    form.innerHTML = `
+      <div class="row2">
+        <input id="f_date" type="date" required>
+        <input id="f_amount" type="number" step="any" placeholder="Amount (KES)" required>
+      </div>
+      <button type="submit">Add contribution</button>`;
+  }
+  document.getElementById('f_date').valueAsDate = new Date();
+  form.onsubmit = (ev)=>{
+    ev.preventDefault();
+    const date = document.getElementById('f_date').value;
+    if(b.type==='stock'){
+      const company = document.getElementById('f_company').value.trim();
+      const shares = Number(document.getElementById('f_shares').value);
+      const price = Number(document.getElementById('f_price').value);
+      if(!company||!shares||!price) return;
+      b.entries.push({ id: cid(), date, company, shares, price, amount: shares*price });
+    }else{
+      const amount = Number(document.getElementById('f_amount').value);
+      if(!amount) return;
+      b.entries.push({ id: cid(), date, amount });
+    }
+    persist(); renderAll();
+  };
+}
+
+function renderEntries(b){
+  const box = document.getElementById('entryList');
+  const sorted = [...b.entries].sort((x,y)=>y.date.localeCompare(x.date));
+  if(sorted.length===0){ box.innerHTML = '<div class="empty">No entries yet for this bracket.</div>'; return; }
+  box.innerHTML = sorted.map(e=>{
+    const desc = b.type==='stock'
+      ? `${escapeHtml(e.company)} · ${e.shares} @ ${fmt(e.price)}`
+      : 'Contribution';
+    return `<div class="entry-item">
+      <div><div>${desc}</div><div class="entry-meta">${e.date}</div></div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="entry-amount">${fmt(e.amount)}</span>
+        <button class="del" data-id="${e.id}">&times;</button>
+      </div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      b.entries = b.entries.filter(e=>e.id!==btn.dataset.id);
+      persist(); renderAll();
+    });
+  });
+}
+
+function buildCSV(){
+  const rows = [['Bracket','Date','Company/Ticker','Shares','Price','Amount']];
+  Object.values(state.brackets).forEach(b=>{
+    b.entries.forEach(e=>{
+      rows.push([b.name, e.date, e.company||'', e.shares||'', e.price||'', e.amount]);
+    });
+    if(b.currentValue!=null){
+      rows.push([b.name, b.valueDate, 'CURRENT VALUE', '', '', b.currentValue]);
+    }
+  });
+  return rows.map(r=>r.map(c=>String(c).replace(/,/g,';')).join(',')).join('\n');
+}
+
+function copyCSV(csv, btn){
+  const original = btn.textContent;
+  const done = ()=>{ btn.textContent = 'Copied!'; setTimeout(()=>{ btn.textContent = original; }, 2000); };
+  const showBox = ()=>{
+    let box = document.getElementById('csvFallback');
+    if(!box){
+      box = document.createElement('textarea');
+      box.id = 'csvFallback';
+      box.style.cssText = 'width:100%;height:160px;margin-top:10px;font-size:13px;';
+      btn.parentNode.parentNode.appendChild(box);
+    }
+    box.value = csv;
+    box.focus(); box.select();
+    btn.textContent = 'Select all & copy below';
+    setTimeout(()=>{ btn.textContent = original; }, 3000);
+  };
+  const legacy = ()=>{
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = csv; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok ? done() : showBox();
+    }catch(e){ showBox(); }
+  };
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(csv).then(done).catch(legacy);
+  } else { legacy(); }
+}
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([buildCSV()], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'investments.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('copyBtn').addEventListener('click', (ev)=>{
+  copyCSV(buildCSV(), ev.currentTarget);
+});
+
+init();
+</script>
+</body>
+</html>
